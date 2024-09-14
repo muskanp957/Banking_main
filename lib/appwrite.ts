@@ -3,42 +3,50 @@
 import { Client, Account, Databases, Users } from "node-appwrite";
 import { cookies } from "next/headers";
 
-export async function createSessionClient() {
+// Define types for better type safety
+interface AppwriteClients {
+  account: Account;
+  database?: Databases;
+  user?: Users;
+}
+
+// Create Appwrite session client
+export async function createSessionClient(): Promise<AppwriteClients> {
+  // Initialize Appwrite client
   const client = new Client()
     .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
     .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT!);
 
+  // Retrieve session from cookies
   const session = cookies().get("appwrite-session");
 
+  // Handle missing session error
   if (!session || !session.value) {
-    throw new Error("No session");
+    console.error("No session found for the current user.");
+    throw new Error("No session. Please log in.");
   }
 
+  // Set session in the Appwrite client
   client.setSession(session.value);
 
+  // Return an object with only the Account service
   return {
-    get account() {
-      return new Account(client);
-    },
+    account: new Account(client),
   };
 }
 
-export async function createAdminClient() {
+// Create Appwrite admin client
+export async function createAdminClient(): Promise<AppwriteClients> {
+  // Initialize Appwrite client
   const client = new Client()
     .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
     .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT!)
     .setKey(process.env.NEXT_APPWRITE_KEY!);
 
+  // Return an object with Account, Databases, and Users services
   return {
-    get account() {
-      return new Account(client);
-    },
-    get database() {
-      return new Databases(client);
-    },
-    get user() {
-      return new Users(client);
-    }
+    account: new Account(client),
+    database: new Databases(client),
+    user: new Users(client),
   };
 }
-
